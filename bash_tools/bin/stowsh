@@ -13,7 +13,7 @@ shopt -s dotglob
 ###   DEST_DIR: where the symlinks to the actual dotfiles
 ###     will be written (default: "${HOME}")
 ###   MANAGED_DIR: where your dotfiles will be cloned to
-###     (default: "${HOME/git/dotfiles")
+###     (default: "${HOME}/git/dotfiles")
 ###
 ### Subcommands:
 ###   add: add a file to your MANAGED_DIR
