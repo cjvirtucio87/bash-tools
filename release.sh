@@ -13,7 +13,10 @@ set -e
 ###
 ### Options:
 ###   DEBUG:
-###     Enabled debug mode.
+###     If set to anything, enables debug mode.
+###
+###   FULL_RELEASE:
+###     If set to anything, makes the release a full release.
 
 ROOT_DIR="$(readlink --canonicalize --no-newline "$(dirname "$0")")"
 readonly ROOT_DIR
@@ -86,7 +89,10 @@ function main {
   clconf --ignore-env --yaml "${release_yaml}" setv 'name' "bash-tools-${version}"
   clconf --ignore-env --yaml "${release_yaml}" setv 'body' "bash-tools release, version ${version}"
   clconf --ignore-env --yaml "${release_yaml}" setv 'draft' 'false'
-  clconf --ignore-env --yaml "${release_yaml}" setv 'prerelease' 'true'
+
+  if [[ ! -v FULL_RELEASE ]]; then
+    clconf --ignore-env --yaml "${release_yaml}" setv 'prerelease' 'true'
+  fi
 
   local clconf_args=(
     --yaml "${ROOT_DIR}/secrets.yml"
