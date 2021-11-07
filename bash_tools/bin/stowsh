@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+set -e
+shopt -s dotglob
+
+### stowsh: a shell script for manging dotfiles
+###
+### Arguments:
+###   subcommand: the subcommand to call
+###   varargs: args to pass to the subcommand
+###
+### Options:
+###   DEST_DIR: where the symlinks to the actual dotfiles
+###     will be written (default: "${HOME}")
+###   MANAGED_DIR: where your dotfiles will be cloned to
+###     (default: "${HOME/git/dotfiles")
+###
+### Subcommands:
+###   install: install your dotfiles, cloning them and creating
+###     symlinks to them on your DEST_DIR
+###     arguments:
+###       dotfiles_url: URL for your dotfiles
+###       path: path in your dotfiles repo to your actual dotfiles
+
+readonly DEST_DIR="${DEST_DIR:-"${HOME}"}"
+readonly MANAGED_DIR="${MANAGED_DIR:-"${HOME}/git/dotfiles"}"
+
+function _add {
+  local path="$1"
+  if [[ -f "${path}" ]]; then
+    cp "${path}" "${MANAGED_DIR}"
+  elif [[ -d "${path}" ]]; then
+    cp -R "${path}"/* "${MANAGED_DIR}"
+  else
+    _log "${path} is neither file nor directory"
+    return 1
+  fi
+}
+
+function _log {
+  local name="$1"
+  local msg="$2"
+
+  >&2 echo "[${name}] ${msg}"
+}
+
+function _install {
+  local dotfiles_url="$1"
+  local path="$2"
+  if git -C "${MANAGED_DIR}" status  &>/dev/null; then
+    git -C "${MANAGED_DIR}" checkout master
+    git -C "${MANAGED_DIR}" pull
+  else
+    git clone "${dotfiles_url}" "${MANAGED_DIR}"
+  fi
+
+  local subpath=''
+  if [[ -n "${path}" ]]; then
+    subpath="/${path}"
+  fi
+
+  _log 'install' "removing old links"
+  for filename in "${MANAGED_DIR}${subpath}"/*[^git]*; do
+    local dest_filepath="${DEST_DIR}/$(basename "${filename}")"
+    if [[ -L "${dest_filepath}" ]]; then
+      _log 'install' "removing old link: [${dest_filepath}]"
+      unlink "${dest_filepath}"
+    fi
+  done
+
+  _log 'install' "creating links"
+  for filename in "${MANAGED_DIR}${subpath}"/*[^git]*; do
+    local dest_filepath="${DEST_DIR}/$(basename "${filename}")"
+    _log 'install' "creating link: [${dest_filepath}]"
+    ln -s "${filename}" "${dest_filepath}"
+  done
+}
+
+function _git {
+  git -C "${MANAGED_DIR}" "$@"
+}
+
+function main {
+  local subcmd="$1"
+
+  case "${subcmd}" in
+    'add')
+      _log 'main' "adding file [$1]"
+      _add "$2"
+      return
+      ;;
+    'install')
+      _log 'main' "installing dotfiles"
+      _install "${@:2}"
+      return
+      ;;
+    'git')
+      _log 'main' 'running git pass-thru'
+      _git "${@:2}"
+      return
+      ;;
+    *)
+      _log 'main' "invalid subcommand: ${subcmd}"
+      return 1
+      ;;
+  esac
+}
+
+main "$@"

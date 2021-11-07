@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT_DIR="$(dirname "$(readlink --canonicalize-existing "$0")")"
+readonly ROOT_DIR
+
+function _get_newest_commit_versiontxt {
+  git log -1 --pretty=format:"%h" -- './version.txt' | tr --delete '\n'
+}
+
+function main {
+  local newest_commit_versiontxt
+  newest_commit_versiontxt="$(_get_newest_commit_versiontxt)"
+
+  local major_minor="$(git show "${newest_commit_versiontxt}:./version.txt" | tr --delete '\n')"
+  local git_depth="$(git rev-list "${newest_commit_versiontxt}"..HEAD | wc -l)"
+
+  echo -n "${major_minor}.${git_depth}"
+}
+
+main
