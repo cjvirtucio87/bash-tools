@@ -3,7 +3,7 @@
 set -e
 shopt -s dotglob
 
-### stowsh: a shell script for manging dotfiles
+### A shell script for managing dotfiles
 ###
 ### Arguments:
 ###   subcommand: the subcommand to call
@@ -16,6 +16,15 @@ shopt -s dotglob
 ###     (default: "${HOME/git/dotfiles")
 ###
 ### Subcommands:
+###   add: add a file to your MANAGED_DIR
+###     arguments:
+###       filepath: full path to the file to be added
+###
+###
+###   git: pass-thru to git on your MANAGED_DIR
+###     arguments:
+###       varargs: all args that git would normally take
+###
 ###   install: install your dotfiles, cloning them and creating
 ###     symlinks to them on your DEST_DIR
 ###     arguments:
@@ -89,14 +98,14 @@ function main {
       _add "$2"
       return
       ;;
-    'install')
-      _log 'main' "installing dotfiles"
-      _install "${@:2}"
-      return
-      ;;
     'git')
       _log 'main' 'running git pass-thru'
       _git "${@:2}"
+      return
+      ;;
+    'install')
+      _log 'main' "installing dotfiles"
+      _install "${@:2}"
       return
       ;;
     *)

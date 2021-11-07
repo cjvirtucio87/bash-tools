@@ -2,6 +2,19 @@
 
 set -e
 
+### A version retrieval tool.
+###
+### Usage:
+###   gitversion
+###
+### Remarks:
+###   This tool calculates the PATCH version based on number of commits
+###   on a project since the last commit that changed
+###   the version.txt file. The project in question is assumed to have
+###   a version.txt file that defines the MAJOR.MINOR. The calculated
+###   PATCH is appended to this MAJOR.MINOR to constitute the project's
+###   SEMVER.
+
 ROOT_DIR="$(dirname "$(readlink --canonicalize-existing "$0")")"
 readonly ROOT_DIR
 
@@ -10,6 +23,11 @@ function _get_newest_commit_versiontxt {
 }
 
 function main {
+  if [[ ! -f './version.txt' ]]; then
+    >&2 echo 'missing version.txt file'
+    return 1
+  fi
+
   local newest_commit_versiontxt
   newest_commit_versiontxt="$(_get_newest_commit_versiontxt)"
 
