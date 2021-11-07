@@ -20,7 +20,6 @@ shopt -s dotglob
 ###     arguments:
 ###       filepath: full path to the file to be added
 ###
-###
 ###   git: pass-thru to git on your MANAGED_DIR
 ###     arguments:
 ###       varargs: all args that git would normally take
