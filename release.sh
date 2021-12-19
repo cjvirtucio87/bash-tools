@@ -94,6 +94,11 @@ function main {
     clconf --ignore-env --yaml "${release_yaml}" setv 'prerelease' 'true'
   fi
 
+  if [[ ! -f "${ROOT_DIR}/secrets.override.yml" ]]; then
+    >&2 echo "missing secrets.override.yml"
+    return 1
+  fi
+
   local clconf_args=(
     --yaml "${ROOT_DIR}/secrets.yml"
     --yaml "${ROOT_DIR}/secrets.override.yml"
