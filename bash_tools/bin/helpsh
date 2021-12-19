@@ -15,13 +15,33 @@ set -eo pipefail
 
 readonly DOC_PREFIX="${DOC_PREFIX:-'### '}"
 
+function get_path {
+  local path="$1"
+
+  if [[ "${path}" =~ ^\./ ]]; then
+    realpath "${path}"
+    return
+  elif [[ -f "${path}" ]]; then
+    echo -n "${path}"
+    return
+  elif command -v "${path}" &>/dev/null; then
+    command -v "${path}"
+    return
+  fi
+
+  return 1
+}
+
 function is_text {
   file "$1" | grep text &>/dev/null
 }
 
 function main {
   local path
-  path="$(realpath "$1")"
+  if ! path="$(get_path "$1")"; then
+    >&2 echo "[$1] is not a path to a file"
+    return 1
+  fi
 
   if [[ ! -x "${path}" ]] && ! is_text "${path}"; then
     >&2 echo "${path} is not an executable text file"
