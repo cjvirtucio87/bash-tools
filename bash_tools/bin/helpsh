@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+### A script for viewing documentation for a shell script.
+### Specifically, if a given command or bash script has documentation
+### in a header using a the '###' prefix, helpsh
+### will grep that documentation for you.
+###
+### Usage:
+###   <Options> helpsh <Arguments>
+###
+### Arguments:
+###   script: the script whose documentation is sought
+
+readonly DOC_PREFIX="${DOC_PREFIX:-'### '}"
+
+function is_text {
+  file "$1" | grep text &>/dev/null
+}
+
+function main {
+  local path
+  path="$(realpath "$1")"
+
+  if [[ ! -x "${path}" ]] && ! is_text "${path}"; then
+    >&2 echo "${path} is not an executable text file"
+    return 1
+  fi
+
+  grep --extended-regexp -- "^### " "${path}"
+}
+
+main "$@"
