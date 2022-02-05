@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROOT_DIR="$(dirname "$(readlink --canonicalize "$0")")"
+readonly DEV_CONTAINER_NAME='vim-devc'
+readonly ROOT_DIR
+
+function build_vim_overlay {
+  local tag="$1"
+  local no_version_tag
+  no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
+  local tag_version
+  tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
+
+  local vim_devc_tag="${no_version_tag}-vim-devc:${tag_version}"
+  docker build --tag "${vim_devc_tag}" --file - "${ROOT_DIR}"/../lib/vim_devc/context <<EOF
+FROM ${tag}
+
+USER 0
+
+RUN set -e; \
+    dnf install --assumeyes gcc make ncurses ncurses-devel; \
+    curl \
+      --location \
+      --output vim-src.zip \
+      https://github.com/vim/vim/archive/refs/heads/master.zip; \
+    mkdir vim-src; \
+    unzip -d vim-src vim-src.zip; \
+    cd vim-src/vim-master; \
+    make; \
+    make install; \
+    vim --version; \
+    : ;
+
+USER "\${REMOTE_USER}"
+EOF
+
+  echo -n "${vim_devc_tag}"
+}
+
+function main {
+  local tag="$1"
+  local local_workspace_folder="$2"
+
+  local vim_devc_tag
+  vim_devc_tag="$(build_vim_overlay "${tag}")"
+
+  local workspace_name
+  workspace_name="$(basename "${local_workspace_folder}")"
+  local container_workspace_folder="/workspaces/${workspace_name}"
+  docker run \
+    --rm \
+    --interactive \
+    --tty \
+    --env "AD_HOC=1" \
+    --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
+    --workdir "${container_workspace_folder}" \
+    --user "$(id --user):$(id --group)" \
+    --name "${DEV_CONTAINER_NAME}" \
+    "${vim_devc_tag}"
+}
+
+main "$@"
