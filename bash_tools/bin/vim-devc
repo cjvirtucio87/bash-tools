@@ -60,7 +60,10 @@ function build_vim_overlay {
   tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
 
   local vim_devc_tag="${no_version_tag}-vim-devc:${tag_version}"
-  docker build --tag "${vim_devc_tag}" --file - "${ROOT_DIR}"/../lib/vim_devc/context <<EOF
+  docker build \
+    --tag "${vim_devc_tag}" \
+    --file - "${ROOT_DIR}"/../lib/vim_devc/context \
+    <<EOF
 FROM ${tag}
 
 USER 0
