@@ -16,6 +16,8 @@ set -e
 ###     the container's filesystem
 ###
 ### Remarks:
+###   Only Rocky Linux 8 is supported at this time.
+###
 ###   The idea behind this script is similar to what vscode
 ###   does with devcontainers. It builds and starts a container
 ###   with your local workspace mounted into its filesystem
