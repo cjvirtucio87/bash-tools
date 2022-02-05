@@ -91,7 +91,7 @@ function main {
     --rm \
     --interactive \
     --tty \
-    --env "AD_HOC=1" \
+    --entrypoint bash \
     --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
     --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
