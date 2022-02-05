@@ -39,9 +39,25 @@ EOF
   echo -n "${vim_devc_tag}"
 }
 
+function devcontainer_json {
+  local local_workspace_folder="$1"
+  local key="$2"
+
+  local json_path="${local_workspace_folder}/.devcontainer/devcontainer.json"
+  if [[ ! -f "${json_path}" ]]; then
+    >&2 echo "missing devcontainer.json file in local workspace folder [${local_workspace_folder}]"
+    return 1
+  fi
+
+  clconf --ignore-env --yaml "${json_path}" getv "${key}"
+}
+
 function main {
-  local tag="$1"
-  local local_workspace_folder="$2"
+  local local_workspace_folder="${1:-"${PWD}"}"
+  local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
+
+  local tag
+  tag="$(devcontainer_json "${local_workspace_folder}" 'image')"
 
   local vim_devc_tag
   vim_devc_tag="$(build_vim_overlay "${tag}")"
