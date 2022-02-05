@@ -129,7 +129,7 @@ function main {
   clconf template \
     --rm \
     --in-place \
-    --keep-permissions \
+    --keep-existing-permissions \
     --var "bash_tools_version=${version}" \
     "${bash_tools_copy}"
 
