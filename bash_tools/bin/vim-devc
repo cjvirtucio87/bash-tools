@@ -52,6 +52,24 @@ function devcontainer_json {
   clconf --ignore-env --yaml "${json_path}" getv "${key}"
 }
 
+function get_user {
+  local local_workspace_folder="$1"
+
+  local user
+  if user="$(devcontainer_json "${local_workspace_folder}" 'remoteUser')"; then
+    echo -n "${user}"
+    return
+  fi
+
+  if user="$(devcontainer_json "${local_workspace_folder}" 'containerUser')"; then
+    echo -n "${user}"
+    return
+  fi
+
+  docker image inspect cjvirtucio87/go-devc:rocky8 \
+    | clconf --pipe getv 0/Config/User
+}
+
 function main {
   local local_workspace_folder="${1:-"${PWD}"}"
   local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
@@ -65,15 +83,8 @@ function main {
   local workspace_name
   workspace_name="$(basename "${local_workspace_folder}")"
 
-  local container_user
-  if ! container_user="$(devcontainer_json "${local_workspace_folder}" 'containerUser')"; then
-    container_user=root
-  fi
-
   local remote_user
-  if ! remote_user="$(devcontainer_json "${local_workspace_folder}" 'remoteUser')"; then
-    remote_user="${container_user}"
-  fi
+  remote_user="$(get_user "${local_workspace_folder}")"
 
   local container_workspace_folder="/workspaces/${workspace_name}"
   docker run \
