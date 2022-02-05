@@ -64,6 +64,17 @@ function main {
 
   local workspace_name
   workspace_name="$(basename "${local_workspace_folder}")"
+
+  local container_user
+  if ! container_user="$(devcontainer_json "${local_workspace_folder}" 'containerUser')"; then
+    container_user=root
+  fi
+
+  local remote_user
+  if ! remote_user="$(devcontainer_json "${local_workspace_folder}" 'remoteUser')"; then
+    remote_user="${container_user}"
+  fi
+
   local container_workspace_folder="/workspaces/${workspace_name}"
   docker run \
     --rm \
@@ -72,7 +83,7 @@ function main {
     --env "AD_HOC=1" \
     --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
-    --mount "type=bind,src=${HOME}/.vim,dst=/home/dev/.vim" \
+    --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
     --workdir "${container_workspace_folder}" \
     --user "$(id --user):$(id --group)" \
     --name "${DEV_CONTAINER_NAME}" \
