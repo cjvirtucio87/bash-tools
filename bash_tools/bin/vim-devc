@@ -2,6 +2,52 @@
 
 set -e
 
+### A script for setting up vim in a devcontainer.
+###
+### Essentially, the script builds and starts a container
+### with your code and vim configs mounted into its filesystem.
+###
+### Usage:
+###   vim-devc <Arguments>
+###
+### Arguments:
+###   local_workspace_folder: a (relative or absolute) path
+###     to the local workspace folder to be mounted into
+###     the container's filesystem
+###
+### Remarks:
+###   The idea behind this script is similar to what vscode
+###   does with devcontainers. It builds and starts a container
+###   with your local workspace mounted into its filesystem
+###   with a bind mount. However, unlike vscode:
+###
+###   1. The expectation is to use vim inside the
+###     container, not from the host machine.
+###   1. Your vim config directories (.vimrc and .vim) are
+###     mounted into the container filesystem, as well.
+###
+###   Moreover, vscode's approach is to start a container
+###   with a vscode server running in detached mode, then
+###   run docker exec to drop the user into a shell
+###   on that container. This script, on the other hand,
+###   runs the container in attached mode, directly
+###   dropping the user into a shell. As such,
+###   the remoteUser and containerUser properties effectively
+###   do the same thing, as far as this script is concerned.
+###
+###   The script relies on your local workspace's
+###   devcontainer.json file for configuration. That said,
+###   only a few of its properties are currently used:
+###
+###   1. remoteUser
+###   1. containerUser
+###
+###   If remoteUser is set, the container will be started
+###   as that user. If remoteUser is not set, containerUser
+###   will be used, instead. If containerUser is not set,
+###   the last USER directive of the image's build will
+###   be used, instead.
+
 ROOT_DIR="$(dirname "$(readlink --canonicalize "$0")")"
 readonly DEV_CONTAINER_NAME='vim-devc'
 readonly ROOT_DIR
@@ -96,7 +142,7 @@ function main {
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
     --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
     --workdir "${container_workspace_folder}" \
-    --user "$(id --user):$(id --group)" \
+    --user "${remote_user}" \
     --name "${DEV_CONTAINER_NAME}" \
     "${vim_devc_tag}"
 }
