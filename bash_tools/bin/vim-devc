@@ -55,6 +55,8 @@ function main {
     --tty \
     --env "AD_HOC=1" \
     --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
+    --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
+    --mount "type=bind,src=${HOME}/.vim,dst=/home/dev/.vim" \
     --workdir "${container_workspace_folder}" \
     --user "$(id --user):$(id --group)" \
     --name "${DEV_CONTAINER_NAME}" \
