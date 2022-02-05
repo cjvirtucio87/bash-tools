@@ -62,9 +62,12 @@ function build_vim_overlay {
   tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
 
   local vim_devc_tag="${no_version_tag}-vim-devc:${tag_version}"
+  local vim_devc_ctx="${ROOT_DIR}"/../lib/vim_devc/context
+  vim_devc_ctx="$(readlink --canonicalize "${vim_devc_ctx}")"
+
   docker build \
     --tag "${vim_devc_tag}" \
-    --file - "${ROOT_DIR}"/../lib/vim_devc/context \
+    --file - "${vim_devc_ctx}" \
     <<EOF
 FROM ${tag}
 
@@ -83,6 +86,8 @@ RUN set -e; \
     make install; \
     vim --version; \
     : ;
+
+COPY contrib /
 
 USER "\${REMOTE_USER}"
 EOF
@@ -142,7 +147,6 @@ function main {
     --rm \
     --interactive \
     --tty \
-    --entrypoint bash \
     --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
     --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
