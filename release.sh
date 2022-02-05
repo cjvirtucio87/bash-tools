@@ -122,12 +122,23 @@ function main {
   local asset_name
   asset_name="cjvirtucio87-bash-tools-${version}.tar.gz"
 
+  local bash_tools_copy="${TEMP_DIR}/bash_tools"
+  mkdir --parents "${bash_tools_copy}"
+
+  cp --recursive "${ROOT_DIR}/bash_tools"/* "${bash_tools_copy}"
+  clconf template \
+    --rm \
+    --in-place \
+    --keep-permissions \
+    --var "bash_tools_version=${version}" \
+    "${bash_tools_copy}"
+
   local upload_release_asset_response
   upload_release_asset_response="$(upload_release_asset \
     "$(clconf "${clconf_args[@]}" getv 'uploads_release_url')" \
     "$(clconf "${clconf_args[@]}" getv 'github_api_token')" \
     "${release_id}" \
-    "${ROOT_DIR}/bash_tools" \
+    "${bash_tools_copy}" \
     "${asset_name}")"
 
   if [[ -v DEBUG ]]; then
