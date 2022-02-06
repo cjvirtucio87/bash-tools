@@ -55,13 +55,7 @@ readonly DEV_CONTAINER_NAME='vim-devc'
 readonly ROOT_DIR
 
 function build_vim_overlay {
-  local tag="$1"
-  local no_version_tag
-  no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
-  local tag_version
-  tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
-
-  local vim_devc_tag="${no_version_tag}-vim-devc:${tag_version}"
+  local vim_devc_tag="$1"
   local vim_devc_ctx="${ROOT_DIR}"/../lib/vim_devc/context
   vim_devc_ctx="$(readlink --canonicalize "${vim_devc_ctx}")"
 
@@ -87,12 +81,8 @@ RUN set -e; \
     vim --version; \
     : ;
 
-COPY contrib /
-
 USER "\${REMOTE_USER}"
 EOF
-
-  echo -n "${vim_devc_tag}"
 }
 
 function devcontainer_json {
@@ -126,6 +116,16 @@ function get_user {
     | clconf --pipe getv 0/Config/User
 }
 
+function get_vim_devc_tag {
+  local tag="$1"
+  local no_version_tag
+  no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
+  local tag_version
+  tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
+
+  echo -n "${no_version_tag}-vim-devc:${tag_version}"
+}
+
 function main {
   local local_workspace_folder="${1:-"${PWD}"}"
   local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
@@ -134,7 +134,9 @@ function main {
   tag="$(devcontainer_json "${local_workspace_folder}" 'image')"
 
   local vim_devc_tag
-  vim_devc_tag="$(build_vim_overlay "${tag}")"
+  vim_devc_tag="$(get_vim_devc_tag "${tag}")"
+
+  build_vim_overlay "${vim_devc_tag}"
 
   local workspace_name
   workspace_name="$(basename "${local_workspace_folder}")"
@@ -147,6 +149,7 @@ function main {
     --rm \
     --interactive \
     --tty \
+    --entrypoint bash \
     --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
     --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
