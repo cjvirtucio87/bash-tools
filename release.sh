@@ -61,7 +61,9 @@ function upload_release_asset {
       --verbose \
       --to-stdout \
       --directory "${release_dir}" \
-      --exclude './lib/shell-lib/.git' \
+      --exclude '.git' \
+      --exclude '*.swo' \
+      --exclude '*.swp' \
       . \
       | curl \
         -X POST \

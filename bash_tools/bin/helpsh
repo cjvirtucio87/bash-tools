@@ -48,7 +48,13 @@ function main {
     return 1
   fi
 
-  grep --extended-regexp -- "^### " "${path}"
+  grep \
+    --extended-regexp \
+    "^### " \
+    "${path}" \
+    | sed \
+        --regexp-extended \
+        "s/(^### )//g"
 }
 
 main "$@"
