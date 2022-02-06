@@ -124,9 +124,6 @@ function main {
   local asset_name
   asset_name="cjvirtucio87-bash-tools-${version}.tar.gz"
 
-  local bash_tools_copy="${TEMP_DIR}/bash_tools"
-  mkdir --parents "${bash_tools_copy}"
-
   local upload_release_asset_response
   upload_release_asset_response="$(upload_release_asset \
     "$(clconf "${clconf_args[@]}" getv 'uploads_release_url')" \
