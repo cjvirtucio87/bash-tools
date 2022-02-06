@@ -58,6 +58,47 @@ ROOT_DIR="$(dirname "$(readlink --canonicalize "$0")")"
 readonly DEV_CONTAINER_NAME='vim-devc'
 readonly ROOT_DIR
 
+function build_and_run {
+  local local_workspace_folder="$1"
+  local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
+
+  local tag
+  tag="$(devcontainer_json "${local_workspace_folder}" 'image')"
+
+  local vim_devc_tag
+  vim_devc_tag="$(get_vim_devc_tag "${tag}")"
+
+  build_vim_overlay "${vim_devc_tag}"
+
+  local workspace_name
+  workspace_name="$(basename "${local_workspace_folder}")"
+
+  local remote_user
+  remote_user="$(get_user "${local_workspace_folder}")"
+
+  local container_workspace_folder="/workspaces/${workspace_name}"
+
+  local run_args=(
+    --rm
+    --interactive
+    --tty
+    --entrypoint bash
+    --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}"
+    --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc"
+    --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim"
+    --workdir "${container_workspace_folder}"
+    --user "${remote_user}"
+    --name "${DEV_CONTAINER_NAME}"
+  )
+
+  if [[ -v NETWORK ]]; then
+    docker network create "${NETWORK}"
+    run_args+=(--network "${NETWORK}")
+  fi
+
+  docker run "${run_args[@]}" "${vim_devc_tag}"
+}
+
 function build_vim_overlay {
   local vim_devc_tag="$1"
   local vim_devc_ctx="${ROOT_DIR}"/../lib/vim_devc/context
@@ -128,6 +169,25 @@ function get_user {
     | clconf --pipe getv 0/Config/User
 }
 
+function exec_existing {
+  local local_workspace_folder="$1"
+
+  local workspace_name
+  workspace_name="$(basename "${local_workspace_folder}")"
+
+  local remote_user
+  remote_user="$(get_user "${local_workspace_folder}")"
+
+  local container_workspace_folder="/workspaces/${workspace_name}"
+
+  docker exec \
+    --interactive \
+    --tty \
+    --workdir "${container_workspace_folder}" \
+    --user "${remote_user}" \
+    "${DEV_CONTAINER_NAME}" bash
+}
+
 function get_vim_devc_tag {
   local tag="$1"
   local no_version_tag
@@ -142,44 +202,12 @@ function main {
   cleanup
   trap cleanup EXIT
 
-  local local_workspace_folder="${1:-"${PWD}"}"
-  local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
-
-  local tag
-  tag="$(devcontainer_json "${local_workspace_folder}" 'image')"
-
-  local vim_devc_tag
-  vim_devc_tag="$(get_vim_devc_tag "${tag}")"
-
-  build_vim_overlay "${vim_devc_tag}"
-
-  local workspace_name
-  workspace_name="$(basename "${local_workspace_folder}")"
-
-  local remote_user
-  remote_user="$(get_user "${local_workspace_folder}")"
-
-  local container_workspace_folder="/workspaces/${workspace_name}"
-
-  local run_args=(
-    --rm
-    --interactive
-    --tty
-    --entrypoint bash
-    --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}"
-    --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc"
-    --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim"
-    --workdir "${container_workspace_folder}"
-    --user "${remote_user}"
-    --name "${DEV_CONTAINER_NAME}"
-  )
-
-  if [[ -v NETWORK ]]; then
-    docker network create "${NETWORK}"
-    run_args+=(--network "${NETWORK}")
+  if docker container inspect "${DEV_CONTAINER_NAME}" &>/dev/null; then
+    >&2 echo "devcontainer [${DEV_CONTAINER_NAME}] already exists; exec'ing into it"
+    exec_existing "${1:-"${PWD}"}"
+  else
+    build_and_run "${1:-"${PWD}"}"
   fi
-
-  docker run "${run_args[@]}" "${vim_devc_tag}"
 }
 
 main "$@"
