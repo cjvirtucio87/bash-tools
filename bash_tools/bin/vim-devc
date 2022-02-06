@@ -8,12 +8,16 @@ set -e
 ### with your code and vim configs mounted into its filesystem.
 ###
 ### Usage:
-###   vim-devc <Arguments>
+###   <Options> vim-devc <Arguments>
 ###
 ### Arguments:
 ###   local_workspace_folder: a (relative or absolute) path
 ###     to the local workspace folder to be mounted into
 ###     the container's filesystem
+###
+### Options:
+###   NETWORK: if set to anything, create a network named after
+###     this value and remove it when exiting
 ###
 ### Remarks:
 ###   Only Rocky Linux 8 is supported at this time.
@@ -85,6 +89,14 @@ USER "\${REMOTE_USER}"
 EOF
 }
 
+function cleanup {
+  >&2 echo "--- starting cleanup ---"
+  if [[ -v NETWORK ]]; then
+    docker network rm "${NETWORK}" || true
+  fi
+  >&2 echo "-- done cleanup ---"
+}
+
 function devcontainer_json {
   local local_workspace_folder="$1"
   local key="$2"
@@ -127,6 +139,9 @@ function get_vim_devc_tag {
 }
 
 function main {
+  cleanup
+  trap cleanup EXIT
+
   local local_workspace_folder="${1:-"${PWD}"}"
   local_workspace_folder="$(readlink --canonicalize "${local_workspace_folder}")"
 
@@ -145,18 +160,26 @@ function main {
   remote_user="$(get_user "${local_workspace_folder}")"
 
   local container_workspace_folder="/workspaces/${workspace_name}"
-  docker run \
-    --rm \
-    --interactive \
-    --tty \
-    --entrypoint bash \
-    --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}" \
-    --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc" \
-    --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim" \
-    --workdir "${container_workspace_folder}" \
-    --user "${remote_user}" \
-    --name "${DEV_CONTAINER_NAME}" \
-    "${vim_devc_tag}"
+
+  local run_args=(
+    --rm
+    --interactive
+    --tty
+    --entrypoint bash
+    --mount "type=bind,src=${local_workspace_folder},dst=${container_workspace_folder}"
+    --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc"
+    --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim"
+    --workdir "${container_workspace_folder}"
+    --user "${remote_user}"
+    --name "${DEV_CONTAINER_NAME}"
+  )
+
+  if [[ -v NETWORK ]]; then
+    docker network create "${NETWORK}"
+    run_args+=(--network "${NETWORK}")
+  fi
+
+  docker run "${run_args[@]}" "${vim_devc_tag}"
 }
 
 main "$@"
