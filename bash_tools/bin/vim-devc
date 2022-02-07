@@ -16,6 +16,8 @@ set -e
 ###     the container's filesystem
 ###
 ### Options:
+###   CONFIG_NAME: name of the config to use (default: default)
+###
 ###   NETWORK: if set to anything, create a network named after
 ###     this value and remove it when exiting
 ###
@@ -53,8 +55,46 @@ set -e
 ###   will be used, instead. If containerUser is not set,
 ###   the last USER directive of the image's build will
 ###   be used, instead.
+###
+###   The overlay is defined by a Dockerfile that you maintain yourself.
+###   This dockerfile must be placed at:
+###
+###     "${HOME}/.config/vim-devc/<name of config>/docker/Dockerfile"
+###
+###   By default, the config named 'default' will be used. Otherwise,
+###   you can specify which config to use with the CONFIG_NAME
+###   environment variable.
+###
+###   Here is an example of an overlay dockerfile assuming a rocky8
+###   devcontainer image:
+###
+###     FROM cjvirtucio87/go-devc:rocky8
+###
+###     USER 0
+###
+###     RUN set -e; \
+###         dnf install --assumeyes gcc make ncurses ncurses-devel; \
+###         curl \
+###           --location \
+###           --output vim-src.zip \
+###           https://github.com/vim/vim/archive/refs/heads/master.zip; \
+###         mkdir vim-src; \
+###         unzip -d vim-src vim-src.zip; \
+###         cd vim-src/vim-master; \
+###         make; \
+###         make install; \
+###         vim --version; \
+###         : ;
+###
+###     USER "${REMOTE_USER}"
+###
+###   This dockerfile will be used to create an overlay image for vim when
+###   placed at "${HOME}/.config/vim-devc/default/docker/Dockerfile" and
+###   vim-devc is called without CONFIG_NAME being manually set.
 
 ROOT_DIR="$(dirname "$(readlink --canonicalize "$0")")"
+readonly CONFIG_NAME="${CONFIG_NAME:-default}"
+readonly CONFIG_DIR="${HOME}/.config/vim-devc/${CONFIG_NAME}"
 readonly DEV_CONTAINER_NAME='vim-devc'
 readonly ROOT_DIR
 
@@ -87,7 +127,7 @@ function build_and_run {
     --mount "type=bind,src=${HOME}/.vimrc,dst=/home/dev/.vimrc"
     --mount "type=bind,src=${HOME}/.vim,dst=/home/${remote_user}/.vim"
     --workdir "${container_workspace_folder}"
-    --user "${remote_user}"
+    --user "${remote_user}:$(id --group)"
     --name "${DEV_CONTAINER_NAME}"
   )
 
@@ -104,30 +144,15 @@ function build_vim_overlay {
   local vim_devc_ctx="${ROOT_DIR}"/../lib/vim_devc/context
   vim_devc_ctx="$(readlink --canonicalize "${vim_devc_ctx}")"
 
+  if [[ ! -f "${CONFIG_DIR}/docker/Dockerfile" ]]; then
+    >&2 echo "missing dockerfile for config [${CONFIG_NAME}]"
+    return 1
+  fi
+
   docker build \
     --tag "${vim_devc_tag}" \
-    --file - "${vim_devc_ctx}" \
-    <<EOF
-FROM ${tag}
-
-USER 0
-
-RUN set -e; \
-    dnf install --assumeyes gcc make ncurses ncurses-devel; \
-    curl \
-      --location \
-      --output vim-src.zip \
-      https://github.com/vim/vim/archive/refs/heads/master.zip; \
-    mkdir vim-src; \
-    unzip -d vim-src vim-src.zip; \
-    cd vim-src/vim-master; \
-    make; \
-    make install; \
-    vim --version; \
-    : ;
-
-USER "\${REMOTE_USER}"
-EOF
+    --file "${CONFIG_DIR}/docker/Dockerfile" \
+    "${vim_devc_ctx}"
 }
 
 function cleanup {
@@ -165,7 +190,9 @@ function get_user {
     return
   fi
 
-  docker image inspect cjvirtucio87/go-devc:rocky8 \
+  local tag
+  tag="$(devcontainer_json "${local_workspace_folder}" 'image')"
+  docker image inspect "${tag}" \
     | clconf --pipe getv 0/Config/User
 }
 
