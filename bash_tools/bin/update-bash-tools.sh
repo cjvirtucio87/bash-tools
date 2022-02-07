@@ -93,12 +93,12 @@ function setup_symlinks {
   done
 
   for bash_tool in "${bash_tools[@]}"; do
-    local local_bin_bash_tool
-    local_bin_bash_tool="/usr/local/bin/$(basename "${bash_tool}")"
+    local home_bin_bash_tool
+    home_bin_bash_tool="${HOME}/bin/$(basename "${bash_tool}")"
 
-    log "${SEMANTIC_NAME}" "creating new link ${local_bin_bash_tool}"
+    log "${SEMANTIC_NAME}" "creating new link ${home_bin_bash_tool}"
     if ! [[ -v DRY_RUN ]]; then
-      ln -s "${bash_tools_bin}/$(basename "${bash_tool}")" "${local_bin_bash_tool}"
+      ln -s "${bash_tools_bin}/$(basename "${bash_tool}")" "${home_bin_bash_tool}"
     fi
   done
 }
