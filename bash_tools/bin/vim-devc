@@ -190,12 +190,17 @@ function exec_existing {
 
 function get_vim_devc_tag {
   local tag="$1"
-  local no_version_tag
-  no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
-  local tag_version
-  tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
 
-  echo -n "${no_version_tag}-vim-devc:${tag_version}"
+  if [[ "${tag}" =~ :[[:alnum:]]$ ]]; then
+    local no_version_tag
+    no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
+    local tag_version
+    tag_version="$(echo -n "${tag}" | cut -d ':' -f2)"
+
+    tag="${no_version_tag}-vim-devc:${tag_version}"
+  fi
+
+  echo -n "${tag}"
 }
 
 function main {
