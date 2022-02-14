@@ -216,7 +216,7 @@ function exec_existing {
 function get_vim_devc_tag {
   local tag="$1"
 
-  if [[ "${tag}" =~ :[[:alnum:]]$ ]]; then
+  if [[ "${tag}" =~ :[[:alnum:]]+$ ]]; then
     local no_version_tag
     no_version_tag="$(echo -n "${tag}" | cut -d ':' -f1)"
     local tag_version
