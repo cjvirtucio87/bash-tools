@@ -49,11 +49,11 @@ function main {
   fi
 
   grep \
-    --extended-regexp \
+    -E \
     "^### " \
     "${path}" \
     | sed \
-        --regexp-extended \
+        -E \
         "s/(^### )//g"
 }
 
