@@ -59,7 +59,6 @@ function upload_release_asset {
       --gunzip \
       --create \
       --verbose \
-      --to-stdout \
       --directory "${release_dir}" \
       --exclude '.git' \
       --exclude '*.swo' \
