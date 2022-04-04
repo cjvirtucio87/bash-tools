@@ -25,7 +25,7 @@ function cleanup {
   >&2 echo "begin cleanup"
   if [[ -d "${TEMP_DIR}" ]]; then
     >&2 echo "purging TEMP_DIR [${TEMP_DIR}]"
-    rm --recursive --force "${TEMP_DIR}"
+    rm -rf "${TEMP_DIR}"
   fi
   >&2 echo "end cleanup"
 }
@@ -76,7 +76,7 @@ function upload_release_asset {
 function main {
   echo "starting release"
 
-  TEMP_DIR="$(mktemp --directory)"
+  TEMP_DIR="$(mktemp -d)"
   trap cleanup EXIT
 
   local version
