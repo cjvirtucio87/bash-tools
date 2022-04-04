@@ -18,7 +18,7 @@ set -e
 ###   FULL_RELEASE:
 ###     If set to anything, makes the release a full release.
 
-ROOT_DIR="$(readlink --canonicalize --no-newline "$(dirname "$0")")"
+ROOT_DIR="$(dirname "$0")"
 readonly ROOT_DIR
 
 function cleanup {
