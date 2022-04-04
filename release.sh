@@ -92,7 +92,7 @@ function main {
   clconf --ignore-env --yaml "${release_yaml}" setv 'body' "bash-tools release, version ${version}"
   clconf --ignore-env --yaml "${release_yaml}" setv 'draft' 'false'
 
-  if [[ ! -v FULL_RELEASE ]]; then
+  if [[ -z "${FULL_RELEASE}" ]]; then
     clconf --ignore-env --yaml "${release_yaml}" setv 'prerelease' 'true'
   fi
 
@@ -132,7 +132,7 @@ function main {
     "${ROOT_DIR}/bash_tools" \
     "${asset_name}")"
 
-  if [[ -v DEBUG ]]; then
+  if [[ -n "${DEBUG}" ]]; then
     >&2 clconf --yaml <(echo "${upload_release_asset_response}")
   fi
   echo "completed release"
