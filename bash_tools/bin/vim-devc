@@ -5,7 +5,9 @@ set -e
 ### A script for setting up vim in a devcontainer.
 ###
 ### Essentially, the script builds and starts a container
-### with your code and vim configs mounted into its filesystem.
+### named 'vim-devc' with your code and vim configs
+### mounted into its filesystem. If the container already
+### exists, vim-devc (the script) will exec into it, instead.
 ###
 ### Usage:
 ###   <Options> vim-devc <Arguments>
