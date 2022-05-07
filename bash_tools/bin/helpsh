@@ -36,6 +36,21 @@ function is_text {
   file "$1" | grep text &>/dev/null
 }
 
+function realpath {
+  # OSX stub for realpath
+  # see: https://github.com/whatwg/html-build/issues/90#issuecomment-235960102
+  OURPWD=$PWD
+  cd "$(dirname "$1")"
+  LINK=$(readlink "$(basename "$1")")
+  while [ "$LINK" ]; do
+    cd "$(dirname "$LINK")"
+    LINK=$(readlink "$(basename "$1")")
+  done
+  REALPATH="$PWD/$(basename "$1")"
+  cd "$OURPWD"
+  echo -n "$REALPATH"
+}
+
 function main {
   local path
   if ! path="$(get_path "$1")"; then
@@ -49,11 +64,11 @@ function main {
   fi
 
   grep \
-    --extended-regexp \
+    -E \
     "^### " \
     "${path}" \
     | sed \
-        --regexp-extended \
+        -E \
         "s/(^### )//g"
 }
 

@@ -15,11 +15,11 @@ set -e
 ###   PATCH is appended to this MAJOR.MINOR to constitute the project's
 ###   SEMVER.
 
-ROOT_DIR="$(dirname "$(readlink --canonicalize-existing "$0")")"
+ROOT_DIR="$(dirname "$0")"
 readonly ROOT_DIR
 
 function _get_newest_commit_versiontxt {
-  git log -1 --pretty=format:"%h" -- './version.txt' | tr --delete '\n'
+  git log -1 --pretty=format:"%h" -- './version.txt' | tr -d '\n'
 }
 
 function main {
@@ -31,8 +31,8 @@ function main {
   local newest_commit_versiontxt
   newest_commit_versiontxt="$(_get_newest_commit_versiontxt)"
 
-  local major_minor="$(git show "${newest_commit_versiontxt}:./version.txt" | tr --delete '\n')"
-  local git_depth="$(git rev-list "${newest_commit_versiontxt}"..HEAD | wc -l)"
+  local major_minor="$(git show "${newest_commit_versiontxt}:./version.txt" | tr -d '\n')"
+  local git_depth="$(git rev-list "${newest_commit_versiontxt}"..HEAD | wc -l | tr -d ' ')"
 
   echo -n "${major_minor}.${git_depth}"
 }

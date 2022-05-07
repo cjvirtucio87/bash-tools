@@ -12,6 +12,8 @@ shopt -s dotglob
 ### Options:
 ###   DEST_DIR: where the symlinks to the actual dotfiles
 ###     will be written (default: "${HOME}")
+###   DOTFILES_BRANCH: branch of the dotfiles to clone from/checkout to
+###     (default: master)
 ###   MANAGED_DIR: where your dotfiles will be cloned to
 ###     (default: "${HOME}/git/dotfiles")
 ###
@@ -31,6 +33,7 @@ shopt -s dotglob
 ###       path: path in your dotfiles repo to your actual dotfiles
 
 readonly DEST_DIR="${DEST_DIR:-"${HOME}"}"
+readonly DOTFILES_BRANCH="${DOTFILES_BRANCH:-master}"
 readonly MANAGED_DIR="${MANAGED_DIR:-"${HOME}/git/dotfiles"}"
 
 function _add {
@@ -56,10 +59,10 @@ function _install {
   local dotfiles_url="$1"
   local path="$2"
   if git -C "${MANAGED_DIR}" status  &>/dev/null; then
-    git -C "${MANAGED_DIR}" checkout master
+    git -C "${MANAGED_DIR}" checkout "${DOTFILES_BRANCH}"
     git -C "${MANAGED_DIR}" pull
   else
-    git clone "${dotfiles_url}" "${MANAGED_DIR}"
+    git clone --branch "${DOTFILES_BRANCH}" "${dotfiles_url}" "${MANAGED_DIR}"
   fi
 
   local subpath=''
