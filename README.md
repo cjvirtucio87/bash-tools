@@ -34,3 +34,7 @@ on any of these scripts to see their usage information, e.g.:
 helpsh vim-devc
 ```
 
+## Sample dockerfile
+
+A sample dockerfile is included in the `lib/vim-devc` folder. This dockerfile is used to overlay the
+image built by `vim-devc` from the base image set in your project's `devcontainer.json` file.

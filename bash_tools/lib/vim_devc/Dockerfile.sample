@@ -1,0 +1,33 @@
+FROM cjvirtucio87/go-devc:rocky8
+
+ENV GOLANGCI_DIR=/usr/local/golangci
+ENV PATH="${GOLANGCI_DIR}/bin:${PATH}"
+
+USER 0
+
+RUN set -e; \
+    dnf install --assumeyes gcc make ncurses ncurses-devel; \
+    curl \
+      --location \
+      --output vim-src.zip \
+      https://github.com/vim/vim/archive/refs/heads/master.zip; \
+    mkdir vim-src; \
+    unzip -d vim-src vim-src.zip; \
+    cd vim-src/vim-master; \
+    make; \
+    make install; \
+    vim --version; \
+    mkdir --parents /usr/local/golangci/bin; \
+    curl \
+      --location \
+      https://github.com/golangci/golangci-lint/releases/download/v1.45.2/golangci-lint-1.45.2-linux-amd64.tar.gz \
+      | tar \
+          --extract \
+          --gunzip \
+          --directory "${GOLANGCI_DIR}/bin" \
+          --strip-components 1; \
+    chmod 755 "${GOLANGCI_DIR}/bin/golangci-lint"; \
+    chgrp 0 "${GOLANGCI_DIR}/bin/golangci-lint"; \
+    : ;
+
+USER "${REMOTE_USER}"
