@@ -21,6 +21,8 @@ shopt -s dotglob
 ###   add: add a file to your MANAGED_DIR
 ###     arguments:
 ###       filepath: full path to the file to be added
+###       subpath: subpath in the MANAGED_DIR that the file or directory will
+###         be copied to; subpath must be a directory inside your dotfiles repo (optional)
 ###
 ###   git: pass-thru to git on your MANAGED_DIR
 ###     arguments:
@@ -31,19 +33,42 @@ shopt -s dotglob
 ###     arguments:
 ###       dotfiles_url: URL for your dotfiles
 ###       path: path in your dotfiles repo to your actual dotfiles
+###
+###  Examples:
+###
+###    # add an existing dotfile
+###    stowsh add ~/.foo
+###
+###    # add an existing dotfile to the ubuntu subpath in your dotfiles
+###    stowsh add ~/.foo ubuntu
 
 readonly DEST_DIR="${DEST_DIR:-"${HOME}"}"
 readonly DOTFILES_BRANCH="${DOTFILES_BRANCH:-master}"
 readonly MANAGED_DIR="${MANAGED_DIR:-"${HOME}/git/dotfiles"}"
 
 function _add {
-  local path="$1"
-  if [[ -f "${path}" ]]; then
-    cp "${path}" "${MANAGED_DIR}"
-  elif [[ -d "${path}" ]]; then
-    cp -R "${path}"/* "${MANAGED_DIR}"
+  local src_path="$1"
+  local managed_dir_subpath="$2"
+
+  local subpath=''
+  if [[ -n "${managed_dir_subpath}" ]]; then
+    subpath="/${managed_dir_subpath}"
+  fi
+
+  if ! [[ -d "${MANAGED_DIR}${subpath}" ]]; then
+    _log "invalid subpath [${subpath}] (not a directory)"
+    return 1
+  fi
+
+  if [[ -f "${src_path}" ]]; then
+    cp "${src_path}" "${MANAGED_DIR}${subpath}"
+  elif [[ -d "${src_path}" ]]; then
+    local dirname
+    dirname="$(basename "${src_path}")"
+    mkdir -p "${MANAGED_DIR}${subpath}/${dirname}"
+    cp -R "${src_path}"/* "${MANAGED_DIR}${subpath}/${dirname}"
   else
-    _log "${path} is neither file nor directory"
+    _log "${src_path} is neither file nor directory"
     return 1
   fi
 }
@@ -55,9 +80,18 @@ function _log {
   >&2 echo "[${name}] ${msg}"
 }
 
+function _help {
+  local line
+  while read -r line; do
+    if [[ "${line}" =~ ^### ]]; then
+      echo "${line/\#\#\#/}"
+    fi
+  done < "$(readlink -f "$0")"
+}
+
 function _install {
   local dotfiles_url="$1"
-  local path="$2"
+  local managed_dir_subpath="$2"
   if git -C "${MANAGED_DIR}" status  &>/dev/null; then
     git -C "${MANAGED_DIR}" checkout "${DOTFILES_BRANCH}"
     git -C "${MANAGED_DIR}" pull
@@ -66,13 +100,14 @@ function _install {
   fi
 
   local subpath=''
-  if [[ -n "${path}" ]]; then
-    subpath="/${path}"
+  if [[ -n "${managed_dir_subpath}" ]]; then
+    subpath="/${managed_dir_subpath}"
   fi
 
   _log 'install' "removing old links"
   for filename in "${MANAGED_DIR}${subpath}"/*[^git]*; do
-    local dest_filepath="${DEST_DIR}/$(basename "${filename}")"
+    local dest_filepath
+    dest_filepath="${DEST_DIR}/$(basename "${filename}")"
     if [[ -L "${dest_filepath}" ]]; then
       _log 'install' "removing old link: [${dest_filepath}]"
       unlink "${dest_filepath}"
@@ -81,7 +116,8 @@ function _install {
 
   _log 'install' "creating links"
   for filename in "${MANAGED_DIR}${subpath}"/*[^git]*; do
-    local dest_filepath="${DEST_DIR}/$(basename "${filename}")"
+    local dest_filepath
+    dest_filepath="${DEST_DIR}/$(basename "${filename}")"
     _log 'install' "creating link: [${dest_filepath}]"
     ln -s "${filename}" "${dest_filepath}"
   done
@@ -96,8 +132,8 @@ function main {
 
   case "${subcmd}" in
     'add')
-      _log 'main' "adding file [$1]"
-      _add "$2"
+      _log 'main' "adding file [$2]"
+      _add "$2" "$3"
       return
       ;;
     'git')
@@ -111,6 +147,7 @@ function main {
       return
       ;;
     *)
+      _help | less
       _log 'main' "invalid subcommand: ${subcmd}"
       return 1
       ;;
