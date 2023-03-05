@@ -2,10 +2,6 @@
 
 set -e
 
-#!/bin/bash
-
-set -e
-
 ### Script for creating and uploading releases.
 ###
 ### Usage:
