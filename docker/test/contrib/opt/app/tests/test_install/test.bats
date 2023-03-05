@@ -26,6 +26,45 @@ function teardown {
   rm -rf "${TEMP_DIR:?}"
 }
 
+function test_add_adds_directory { # @test
+  init_dotfiles 'simple'
+  _init_managed_dir
+  _test_install
+  _diff_repo_dest_dir
+
+  local expected_dir='.foo'
+  local dest_expected_dirpath="${DEST_DIR}/${expected_dir}"
+  mkdir -p "${DEST_DIR}/${expected_dir}/bar"
+  echo -n 'hello' > "${dest_expected_dirpath}/bar/hello.txt"
+  stowsh add "${dest_expected_dirpath}"
+  local actual_dir
+  actual_dir="$(stowsh git status -s | grep ?? | cut -d' ' -f2 | tr --delete '\n')"
+
+  printf 'expected [%s], got [%s]\n' "${expected_dir}/" "${actual_dir}"
+  [[ "${expected_dir}/" == "${actual_dir}" ]]
+  diff --unified "${dest_expected_dirpath}/" "${MANAGED_DIR}/${actual_dir}"
+}
+
+function test_add_adds_directory_to_subpath { # @test
+  init_dotfiles 'subpath'
+  _init_managed_dir
+  _test_install
+  _diff_repo_dest_dir
+
+  local expected_dir='.foo'
+  local expected_subpath='ubuntu'
+  local dest_expected_dirpath="${DEST_DIR}/${expected_dir}"
+  mkdir -p "${DEST_DIR}/${expected_dir}/bar"
+  echo -n 'hello' > "${dest_expected_dirpath}/bar/hello.txt"
+  stowsh add "${dest_expected_dirpath}" "${expected_subpath}"
+  local actual_dir
+  actual_dir="$(stowsh git status -s | grep ?? | cut -d' ' -f2 | tr --delete '\n')"
+
+  printf 'expected [%s], got [%s]\n' "${expected_subpath}/${expected_dir}/" "${actual_dir}"
+  [[ "${expected_subpath}/${expected_dir}/" == "${actual_dir}" ]]
+  diff --unified "${dest_expected_dirpath}/" "${MANAGED_DIR}/${actual_dir}"
+}
+
 function test_add_adds_file { # @test
   init_dotfiles 'simple'
   _init_managed_dir
@@ -39,7 +78,30 @@ function test_add_adds_file { # @test
   local actual_filename
   actual_filename="$(stowsh git status -s | grep ?? | cut -d' ' -f2 | tr --delete '\n')"
 
+  printf 'expected [%s], got [%s]\n' "${expected_filename}" "${actual_filename}"
   [[ "${expected_filename}" == "${actual_filename}" ]]
+  diff --unified "${dest_expected_filepath}" "${MANAGED_DIR}/${actual_filename}"
+}
+
+function test_add_adds_file_to_subpath { # @test
+  init_dotfiles 'subpath'
+  _init_managed_dir
+  _test_install
+  _diff_repo_dest_dir
+
+  local expected_filename='.new_file'
+  local dest_expected_filepath="${DEST_DIR}/${expected_filename}"
+  echo -n 'hello' > "${dest_expected_filepath}"
+
+  local expected_subpath='ubuntu'
+  stowsh add "${dest_expected_filepath}" "${expected_subpath}"
+
+  stowsh git status -s
+  local actual_filename
+  actual_filename="$(stowsh git status -s | grep ?? | cut -d' ' -f2 | tr --delete '\n')"
+
+  printf 'expected [%s], got [%s]\n' "${expected_filename}" "${actual_filename}"
+  [[ "${expected_subpath}/${expected_filename}" == "${actual_filename}" ]]
   diff --unified "${dest_expected_filepath}" "${MANAGED_DIR}/${actual_filename}"
 }
 

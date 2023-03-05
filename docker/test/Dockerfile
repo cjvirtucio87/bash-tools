@@ -8,7 +8,7 @@ ENV BATS_VERSION='1.3.0' \
 
 RUN set -e; \
     dnf update -y; \
-    dnf install git -y; \
+    dnf install git findutils -y; \
     TEMP_DIR="$(mktemp --directory)"; \
     curl \
       --location \
