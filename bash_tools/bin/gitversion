@@ -15,14 +15,25 @@ set -e
 ###   PATCH is appended to this MAJOR.MINOR to constitute the project's
 ###   SEMVER.
 
-ROOT_DIR="$(dirname "$0")"
-readonly ROOT_DIR
+function _help {
+  local line
+  while read -r line; do
+    if [[ "${line}" =~ ^### ]]; then
+      echo "${line/\#\#\#/}"
+    fi
+  done < "$(readlink -f "$0")"
+}
 
 function _get_newest_commit_versiontxt {
   git log -1 --pretty=format:"%h" -- './version.txt' | tr -d '\n'
 }
 
 function main {
+  if [[ "$1" =~ help ]]; then
+    _help | less
+    return
+  fi
+
   if [[ ! -f './version.txt' ]]; then
     >&2 echo 'missing version.txt file'
     return 1
