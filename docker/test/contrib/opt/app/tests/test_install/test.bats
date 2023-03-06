@@ -138,3 +138,29 @@ function test_install_installs_dotfiles_with_folders_subpath { # @test
   _init_managed_dir
   _test_install "${path}"
 }
+
+function _test_install_skips_files_or_directories_already_present { # @test
+  init_dotfiles 'simple'
+  _init_managed_dir
+  _test_install
+  _diff_repo_dest_dir
+
+  local expected_filename='.new_file'
+  local dest_expected_filepath="${DEST_DIR}/${expected_filename}"
+  echo -n 'hello' > "${dest_expected_filepath}"
+
+  stowsh add "${dest_expected_filepath}"
+  stowsh git add -A
+  stowsh git commit -m 'initial file'
+
+  local second_expected_filename='.second_new_file'
+  local dest_second_expected_filepath="${DEST_DIR}/${second_expected_filename}"
+  echo -n 'hello' > "${dest_second_expected_filepath}"
+
+  stowsh install "${DOTFILES_URL}"
+
+  [[ -f "${dest_second_expected_filepath}" ]]
+
+  ! diff --unified "${dest_expected_dirpath}/" "${MANAGED_DIR}/${actual_dir}"
+  ! [[ -L "${dest_second_expected_filepath}" ]]
+}
