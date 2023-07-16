@@ -64,16 +64,23 @@ function get_latest_attached_policy_versions {
     latest_attached_policy_version_docs+=("${latest_attached_policy_version_doc}")
   done
 
+  local assume_role_policy='{}'
+  if [[ "${kind}" =~ role ]]; then
+    assume_role_policy="$(aws iam get-role --role-name "${name}" | jq --raw-output --compact-output '.Role.AssumeRolePolicyDocument')"
+  fi
+
   jq \
     --null-input \
     --arg resource_kind "${kind}" \
     --arg resource_name "${name}" \
+    --argjson assume_role_policy "${assume_role_policy}" \
     --slurpfile inline_policies <(for inline_policy in "${inline_policies[*]}"; do echo "${inline_policy}"; done) \
     --slurpfile latest_attached_policy_version_docs <(for latest_attached_policy_versoin_doc in "${latest_attached_policy_version_docs[*]}"; do echo "${latest_attached_policy_versoin_doc}"; done) \
     "$(cat <<'EOF'
 {
   ResourceKind: $resource_kind,
   ResourceName: $resource_name,
+  AssumeRolePolicy: $assume_role_policy,
   InlinePolicies: $inline_policies,
   LatestAttachedPolicyVersions: $latest_attached_policy_version_docs
 }
