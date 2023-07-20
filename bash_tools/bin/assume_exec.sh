@@ -23,7 +23,7 @@ function main {
   local args=("$@")
 
   local role_arn
-  role_arn="$(aws iam get-role --role-name cjvautomation-android | jq --raw-output --compact-output '.Role.Arn')"
+  role_arn="$(aws iam get-role --role-name "${role_name}" | jq --raw-output --compact-output '.Role.Arn')"
 
   assume_role "${role_arn}"
 
