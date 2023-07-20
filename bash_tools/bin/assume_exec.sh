@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 function assume_role {
-  local role_arn="$1"
+  local role_name="$1"
+
+  local role_arn
+  role_arn="$(aws iam get-role --role-name "${role_name}" | jq --raw-output --compact-output '.Role.Arn')"
 
   local current_user
   current_user="$(whoami)"
@@ -20,14 +23,20 @@ function main {
   set -eo pipefail
 
   local role_name="$1"
-  local args=("$@")
+  local all_args=("$@")
+  local all_args_count="${#all_args}"
 
-  local role_arn
-  role_arn="$(aws iam get-role --role-name "${role_name}" | jq --raw-output --compact-output '.Role.Arn')"
+  let "offset_args_count = all_args_count - 1"
 
-  assume_role "${role_arn}"
+  local args=("${all_args[@]:1:${offset_args_count}}")
+  assume_role "${role_name}"
 
   aws "${args[@]}"
 }
+
+if (return 0 2>/dev/null); then
+  assume_role "$1"
+  return
+fi
 
 main "$@"
