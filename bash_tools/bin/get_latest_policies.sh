@@ -46,7 +46,7 @@ function get_latest_attached_policy_versions {
   local latest_attached_policy_versions=()
   local latest_attached_policy_version
   for attached_policy_arn in "${attached_policy_arns[@]}"; do
-    latest_attached_policy_version="$(aws iam list-policy-versions --policy-arn "${attached_policy_arn}" | jq --raw-output --arg policy_arn "${attached_policy_arn}" '.Versions |= sort_by(.CreationDate) | .Versions[-1] | {PolicyArn: $policy_arn, VersionId: .VersionId}')"
+    latest_attached_policy_version="$(aws iam list-policy-versions --policy-arn "${attached_policy_arn}" | jq --raw-output --arg policy_arn "${attached_policy_arn}" '.Versions |= sort_by(.CreateDate) | .Versions[-1] | {PolicyArn: $policy_arn, VersionId: .VersionId}')"
     latest_attached_policy_versions+=("${latest_attached_policy_version}")
   done
 
