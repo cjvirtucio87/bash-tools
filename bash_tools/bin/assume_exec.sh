@@ -2,9 +2,13 @@
 
 function assume_role {
   local role_name="$1"
+  local account_id="$2"
+  local role_path="$3"
 
-  local role_arn
-  role_arn="$(aws iam get-role --role-name "${role_name}" | jq --raw-output --compact-output '.Role.Arn')"
+  local role_arn="arn:aws:iam::${account_id}:role${role_path}/${role_name}"
+  if [[ -z "${account_id}" ]]; then
+    role_arn="$(aws iam get-role --role-name "${role_name}" | jq --raw-output --compact-output '.Role.Arn')"
+  fi
 
   local current_user
   current_user="$(whoami)"
@@ -35,7 +39,6 @@ function main {
 }
 
 if (return 0 2>/dev/null); then
-  assume_role "$1"
   return
 fi
 
