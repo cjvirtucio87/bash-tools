@@ -22,73 +22,53 @@ function get_latest_attached_policy_versions {
   local kind="$1"
   local name="$2"
 
-  local region
-  while read -r region; do
-    local inline_policy_names=()
-    local inline_policy_name
-    while read -r inline_policy_name; do
-      inline_policy_names+=("${inline_policy_name}")
-    done < <(aws --region "${region}" iam "list-${kind}-policies" "--${kind}-name" "${name}" | jq --raw-output --compact-output '.PolicyNames[]')
+  local attached_policy_arns=()
+  local attached_policy_arn
+  while read -r attached_policy_arn; do
+    attached_policy_arns+=("${attached_policy_arn}")
+  done < <(aws iam "list-attached-${kind}-policies" "--${kind}-name" "${name}" | jq --raw-output --compact-output '.AttachedPolicies[] | .PolicyArn')
 
-    local inline_policies=()
-    local inline_policy_name
-    for inline_policy_name in "${inline_policy_names[@]}"; do
-      local inline_policy
-      inline_policy="$(aws --region "${region}" iam "get-${kind}-policy" "--${kind}-name" "${name}" --policy-name "${inline_policy_name}" | jq --raw-output --compact-output '.')"
+  local latest_attached_policy_versions=()
+  local latest_attached_policy_version
+  for attached_policy_arn in "${attached_policy_arns[@]}"; do
+    latest_attached_policy_version="$(aws iam list-policy-versions --policy-arn "${attached_policy_arn}" | jq --raw-output --arg policy_arn "${attached_policy_arn}" '.Versions |= sort_by(.CreateDate) | .Versions[-1] | {PolicyArn: $policy_arn, VersionId: .VersionId}')"
+    latest_attached_policy_versions+=("${latest_attached_policy_version}")
+  done
 
-      inline_policies+=("${inline_policy}")
-    done
+  local latest_attached_policy_version_docs=()
+  for latest_attached_policy_version in "${latest_attached_policy_versions[@]}"; do
+    local policy_arn
+    policy_arn="$(jq --raw-output '.PolicyArn' <<<"${latest_attached_policy_version}")"
 
-    local attached_policy_arns=()
-    local attached_policy_arn
-    while read -r attached_policy_arn; do
-      attached_policy_arns+=("${attached_policy_arn}")
-    done < <(aws --region "${region}" iam "list-attached-${kind}-policies" "--${kind}-name" "${name}" | jq --raw-output --compact-output '.AttachedPolicies[] | .PolicyArn')
+    local version_id
+    version_id="$(jq --raw-output '.VersionId' <<<"${latest_attached_policy_version}")"
 
-    local latest_attached_policy_versions=()
-    local latest_attached_policy_version
-    for attached_policy_arn in "${attached_policy_arns[@]}"; do
-      latest_attached_policy_version="$(aws --region "${region}" iam list-policy-versions --policy-arn "${attached_policy_arn}" | jq --raw-output --arg policy_arn "${attached_policy_arn}" '.Versions |= sort_by(.CreateDate) | .Versions[-1] | {PolicyArn: $policy_arn, VersionId: .VersionId}')"
-      latest_attached_policy_versions+=("${latest_attached_policy_version}")
-    done
+    local latest_attached_policy_version_doc
+    latest_attached_policy_version_doc="$(aws iam get-policy-version --policy-arn "${policy_arn}" --version-id "${version_id}" | jq --raw-output --compact-output --arg policy_arn "${policy_arn}" --arg version_id "${version_id}" '{PolicyArn: $policy_arn, VersionId: $version_id, PolicyVersion: .}')"
 
-    local latest_attached_policy_version_docs=()
-    for latest_attached_policy_version in "${latest_attached_policy_versions[@]}"; do
-      local policy_arn
-      policy_arn="$(jq --raw-output '.PolicyArn' <<<"${latest_attached_policy_version}")"
+    latest_attached_policy_version_docs+=("${latest_attached_policy_version_doc}")
+  done
 
-      local version_id
-      version_id="$(jq --raw-output '.VersionId' <<<"${latest_attached_policy_version}")"
+  local assume_role_policy='{}'
+  if [[ "${kind}" =~ role ]]; then
+    assume_role_policy="$(aws iam get-role --role-name "${name}" | jq --raw-output --compact-output '.Role.AssumeRolePolicyDocument')"
+  fi
 
-      local latest_attached_policy_version_doc
-      latest_attached_policy_version_doc="$(aws --region "${region}" iam get-policy-version --policy-arn "${policy_arn}" --version-id "${version_id}" | jq --raw-output --compact-output --arg policy_arn "${policy_arn}" --arg version_id "${version_id}" '{PolicyArn: $policy_arn, VersionId: $version_id, PolicyVersion: .}')"
-
-      latest_attached_policy_version_docs+=("${latest_attached_policy_version_doc}")
-    done
-
-    local assume_role_policy='{}'
-    if [[ "${kind}" =~ role ]]; then
-      assume_role_policy="$(aws --region "${region}" iam get-role --role-name "${name}" | jq --raw-output --compact-output '.Role.AssumeRolePolicyDocument')"
-    fi
-
-    jq \
-      --null-input \
-      --arg resource_kind "${kind}" \
-      --arg resource_name "${name}" \
-      --argjson assume_role_policy "${assume_role_policy}" \
-      --slurpfile inline_policies <(for inline_policy in "${inline_policies[*]}"; do echo "${inline_policy}"; done) \
-      --slurpfile latest_attached_policy_version_docs <(for latest_attached_policy_versoin_doc in "${latest_attached_policy_version_docs[*]}"; do echo "${latest_attached_policy_versoin_doc}"; done) \
-      "$(cat <<'EOF'
+  jq \
+    --null-input \
+    --arg resource_kind "${kind}" \
+    --arg resource_name "${name}" \
+    --argjson assume_role_policy "${assume_role_policy}" \
+    --slurpfile latest_attached_policy_version_docs <(for latest_attached_policy_versoin_doc in "${latest_attached_policy_version_docs[*]}"; do echo "${latest_attached_policy_versoin_doc}"; done) \
+    "$(cat <<'EOF'
 {
   ResourceKind: $resource_kind,
   ResourceName: $resource_name,
   AssumeRolePolicy: $assume_role_policy,
-  InlinePolicies: $inline_policies,
   LatestAttachedPolicyVersions: $latest_attached_policy_version_docs
 }
 EOF
   )"
-  done < <(aws ec2 describe-regions | jq -r '.Regions[] | .RegionName')
 }
 
 function get_self_latest_policy_versions {
